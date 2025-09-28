@@ -29,85 +29,171 @@ class FirstInningsSummaryScreen extends StatelessWidget {
         : match.team2;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text('${match.team1.name} vs ${match.team2.name}'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF2C3E50),
+        title: Text(
+          '${match.team1.name} vs ${match.team2.name}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(16.0),
             child: Center(
               child: Text(
-                DateFormat('MMM dd, yyyy - HH:mm')
-                    .format(DateTime.parse(match.id)),
-                style: TextStyle(fontSize: 12),
+                DateFormat('MMM dd, yyyy').format(DateTime.parse(match.id)),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF7A8B9A),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // First innings summary header
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    'First Innings Complete',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue.shade800,
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '${battingTeam.name}: $innings1Runs/${match.innings1.wickets}',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  Text(
-                    'Target: $targetRuns runs in $totalBalls balls',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF4CAF50),
+                    const Color(0xFF45A049),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
                   ),
                 ],
               ),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  children: [
+                    const Text(
+                      'FIRST INNINGS COMPLETE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: battingTeam.name.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                          const TextSpan(
+                            text: '\n',
+                            style: TextStyle(fontSize: 8),
+                          ),
+                          TextSpan(
+                            text: innings1Runs.toString(),
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          TextSpan(
+                            text: '/${match.innings1.wickets}',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Target: $targetRuns runs in $totalBalls balls',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Scorecard section
-            Text(
-              'Scorecard',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            const Text(
+              'SCORECARD',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF7A8B9A),
+                letterSpacing: 1.2,
+              ),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 12),
 
             Expanded(
               child: Container(
-                padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Batting summary
-                      Text(
-                        '${battingTeam.name} - Batting',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
+                      _buildSectionHeader(
+                          '${battingTeam.name} - Batting', '🏏'),
+                      const SizedBox(height: 16),
+                      _buildStatsHeader(['Player', 'Runs', 'Balls', 'S/R']),
+                      const SizedBox(height: 8),
 
                       // Create batting stats
                       ...battingTeam.players.map((player) {
@@ -123,54 +209,26 @@ class FirstInningsSummaryScreen extends StatelessWidget {
                                 ball.runOutPlayerId == player.id));
 
                         if (ballsFaced > 0 || isOut) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(
-                                    '${player.name}${isOut ? ' (out)' : ''}',
-                                    style: TextStyle(fontSize: 14),
-                                  ),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text('$runs',
-                                      textAlign: TextAlign.center),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text('$ballsFaced',
-                                      textAlign: TextAlign.center),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    ballsFaced > 0
-                                        ? ((runs / ballsFaced) * 100)
-                                            .toStringAsFixed(1)
-                                        : '0.0',
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
+                          return _buildStatRow([
+                            '${player.name}${isOut ? ' (out)' : ''}',
+                            runs.toString(),
+                            ballsFaced.toString(),
+                            ballsFaced > 0
+                                ? ((runs / ballsFaced) * 100).toStringAsFixed(1)
+                                : '0.0',
+                          ], isOut);
                         }
-                        return SizedBox.shrink();
+                        return const SizedBox.shrink();
                       }).toList(),
 
-                      SizedBox(height: 16),
+                      const SizedBox(height: 32),
 
                       // Bowling summary
-                      Text(
-                        '${bowlingTeam.name} - Bowling',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 8),
+                      _buildSectionHeader(
+                          '${bowlingTeam.name} - Bowling', '🎯'),
+                      const SizedBox(height: 16),
+                      _buildStatsHeader(['Player', 'Overs', 'Runs', 'Wkts']),
+                      const SizedBox(height: 8),
 
                       ...bowlingTeam.players.map((player) {
                         final playerBalls = match.innings1.overs
@@ -186,36 +244,14 @@ class FirstInningsSummaryScreen extends StatelessWidget {
                         if (ballsBowled > 0) {
                           final overs =
                               '${(ballsBowled ~/ 6)}.${ballsBowled % 6}';
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text(player.name,
-                                      style: TextStyle(fontSize: 14)),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child:
-                                      Text(overs, textAlign: TextAlign.center),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text('$runs',
-                                      textAlign: TextAlign.center),
-                                ),
-                                Expanded(
-                                  flex: 1,
-                                  child: Text('$wickets',
-                                      textAlign: TextAlign.center),
-                                ),
-                              ],
-                            ),
-                          );
+                          return _buildStatRow([
+                            player.name,
+                            overs,
+                            runs.toString(),
+                            wickets.toString(),
+                          ], false);
                         }
-                        return SizedBox.shrink();
+                        return const SizedBox.shrink();
                       }).toList(),
                     ],
                   ),
@@ -223,25 +259,147 @@ class FirstInningsSummaryScreen extends StatelessWidget {
               ),
             ),
 
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Start second innings button
-            SizedBox(
+            Container(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _startSecondInnings(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  textStyle:
-                      TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF4CAF50), Color(0xFF45A049)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: Text('Start Second Innings'),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF4CAF50).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: MaterialButton(
+                onPressed: () => _startSecondInnings(context),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.play_arrow,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Start Second Innings',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, String emoji) {
+    return Row(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              emoji,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatsHeader(List<String> headers) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: headers.asMap().entries.map((entry) {
+          final index = entry.key;
+          final header = entry.value;
+
+          return Expanded(
+            flex: index == 0 ? 3 : 1,
+            child: Text(
+              header,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF7A8B9A),
+                letterSpacing: 0.5,
+              ),
+              textAlign: index == 0 ? TextAlign.left : TextAlign.center,
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildStatRow(List<String> values, bool isOut) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: isOut ? const Color(0xFFFFF3E0) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isOut ? Border.all(color: const Color(0xFFFFCC80)) : null,
+      ),
+      child: Row(
+        children: values.asMap().entries.map((entry) {
+          final index = entry.key;
+          final value = entry.value;
+
+          return Expanded(
+            flex: index == 0 ? 3 : 1,
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: index == 0 ? FontWeight.w600 : FontWeight.w500,
+                color:
+                    isOut ? const Color(0xFFE65100) : const Color(0xFF2C3E50),
+              ),
+              textAlign: index == 0 ? TextAlign.left : TextAlign.center,
+            ),
+          );
+        }).toList(),
       ),
     );
   }

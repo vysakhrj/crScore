@@ -5,8 +5,10 @@ class BowlerSelectionDialog extends StatefulWidget {
   final List<Player> bowlingTeamPlayers;
   final String currentBowlerId;
 
-  BowlerSelectionDialog(
-      {required this.bowlingTeamPlayers, required this.currentBowlerId});
+  const BowlerSelectionDialog({
+    required this.bowlingTeamPlayers,
+    required this.currentBowlerId,
+  });
 
   @override
   _BowlerSelectionDialogState createState() => _BowlerSelectionDialogState();
@@ -18,58 +20,72 @@ class _BowlerSelectionDialogState extends State<BowlerSelectionDialog> {
   @override
   void initState() {
     super.initState();
-    // Check if current bowler is in the available list (for edit functionality)
-    final currentBowlerInList = widget.bowlingTeamPlayers
-        .any((player) => player.id == widget.currentBowlerId);
-
-    if (currentBowlerInList) {
-      // Pre-select current bowler if they're in the list (for edit functionality)
+    if (widget.bowlingTeamPlayers
+        .any((player) => player.id == widget.currentBowlerId)) {
       selectedBowler = widget.bowlingTeamPlayers
           .firstWhere((p) => p.id == widget.currentBowlerId);
-    } else {
-      // Don't pre-select the current bowler since they can't bowl consecutive overs
-      selectedBowler = null;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: Colors.grey[50],
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Select New Bowler',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Text('Current bowler cannot bowl consecutive overs',
-                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-            SizedBox(height: 20),
-            DropdownButton<Player>(
-              hint: Text('Select Bowler'),
+            const Text('SELECT NEW BOWLER',
+                style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                    color: Colors.black54)),
+            const SizedBox(height: 10),
+            const Text('Current bowler cannot bowl consecutive overs',
+                style: TextStyle(fontSize: 12, color: Colors.grey)),
+            const SizedBox(height: 20),
+            DropdownButtonFormField<Player>(
               value: selectedBowler,
-              onChanged: (Player? newValue) {
-                setState(() {
-                  selectedBowler = newValue;
-                });
-              },
+              decoration: InputDecoration(
+                hintText: "Select Bowler",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                filled: true,
+                fillColor: Colors.white,
+              ),
               items: widget.bowlingTeamPlayers
-                  .map<DropdownMenuItem<Player>>((Player player) {
-                return DropdownMenuItem<Player>(
-                  value: player,
-                  child: Text(player.name),
-                );
-              }).toList(),
+                  .map((player) => DropdownMenuItem(
+                        value: player,
+                        child: Text(player.name),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() => selectedBowler = value);
+              },
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
             ElevatedButton(
               onPressed: selectedBowler != null
-                  ? () {
-                      Navigator.pop(context, selectedBowler!.id);
-                    }
+                  ? () => Navigator.pop(context, selectedBowler!.id)
                   : null,
-              child: Text('Confirm Bowler'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    selectedBowler != null ? Colors.black87 : Colors.grey[400],
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              child: const Text('CONFIRM BOWLER',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1.2,
+                      color: Colors.white)),
             ),
           ],
         ),

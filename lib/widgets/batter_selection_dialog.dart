@@ -5,7 +5,7 @@ class BatterSelectionDialog extends StatelessWidget {
   final List<Player> battingTeamPlayers;
   final String currentStrikerId;
   final String currentNonStrikerId;
-  final String? selectedBatterType; // 'striker' or 'nonStriker'
+  final String? selectedBatterType;
 
   const BatterSelectionDialog({
     Key? key,
@@ -17,47 +17,54 @@ class BatterSelectionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter out current batters and those who have already started
     final availableBatters = battingTeamPlayers
-        .where((player) =>
-            player.id != currentStrikerId && player.id != currentNonStrikerId)
+        .where((p) => p.id != currentStrikerId && p.id != currentNonStrikerId)
         .toList();
 
-    return AlertDialog(
-      title: Text(selectedBatterType == 'striker'
-          ? 'Select New Striker'
-          : selectedBatterType == 'nonStriker'
-              ? 'Select New Non-Striker'
-              : 'Select Batter'),
-      content: Container(
-        width: double.maxFinite,
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: Colors.grey[50],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (availableBatters.isEmpty) ...[
-              Text(
+            Text(
+              selectedBatterType == 'striker'
+                  ? 'SELECT NEW STRIKER'
+                  : selectedBatterType == 'nonStriker'
+                      ? 'SELECT NEW NON-STRIKER'
+                      : 'SELECT BATTER',
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: Colors.black54),
+            ),
+            const SizedBox(height: 20),
+            if (availableBatters.isEmpty)
+              const Text(
                 'No available batters to change.',
                 style: TextStyle(fontStyle: FontStyle.italic),
-              ),
-            ] else ...[
+              )
+            else
               ...availableBatters.map((player) => ListTile(
                     title: Text(player.name),
-                    onTap: () {
-                      Navigator.of(context).pop(player.id);
-                    },
+                    onTap: () => Navigator.of(context).pop(player.id),
                   )),
-            ],
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('CANCEL',
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1.2,
+                      color: Colors.black)),
+            )
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-          child: Text('Cancel'),
-        ),
-      ],
     );
   }
 }

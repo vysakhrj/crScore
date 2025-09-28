@@ -1,4 +1,3 @@
-
 import 'package:cricket_scorer/models/player.dart';
 import 'package:flutter/material.dart';
 
@@ -6,7 +5,10 @@ class PlayerSelectionDialog extends StatefulWidget {
   final List<Player> battingTeamPlayers;
   final List<Player> bowlingTeamPlayers;
 
-  PlayerSelectionDialog({required this.battingTeamPlayers, required this.bowlingTeamPlayers});
+  const PlayerSelectionDialog({
+    required this.battingTeamPlayers,
+    required this.bowlingTeamPlayers,
+  });
 
   @override
   _PlayerSelectionDialogState createState() => _PlayerSelectionDialogState();
@@ -17,73 +19,127 @@ class _PlayerSelectionDialogState extends State<PlayerSelectionDialog> {
   Player? selectedNonStriker;
   Player? selectedBowler;
 
+  TextStyle get labelStyle => const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.2,
+        color: Colors.black54,
+      );
+
+  ButtonStyle getPrimaryButtonStyle(bool enabled) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: enabled ? Colors.black87 : Colors.grey[400],
+      foregroundColor: Colors.white,
+      minimumSize: const Size(double.infinity, 48),
+      textStyle: const TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.1,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(6),
+      ),
+    );
+  }
+
+  InputDecoration getDropdownDecoration(String hint) {
+    return InputDecoration(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      hintText: hint,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+      filled: true,
+      fillColor: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isValid = selectedStriker != null &&
+        selectedNonStriker != null &&
+        selectedBowler != null &&
+        selectedStriker != selectedNonStriker;
+
     return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Select Players', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            DropdownButton<Player>(
-              hint: Text('Select Striker'),
+            Text('SELECT PLAYERS', style: labelStyle),
+            const SizedBox(height: 20),
+
+            /// Striker
+            DropdownButtonFormField<Player>(
               value: selectedStriker,
-              onChanged: (Player? newValue) {
-                setState(() {
-                  selectedStriker = newValue;
-                });
+              decoration: getDropdownDecoration("Select Striker"),
+              items: widget.battingTeamPlayers
+                  .map((player) => DropdownMenuItem(
+                        value: player,
+                        child: Text(player.name),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() => selectedStriker = value);
               },
-              items: widget.battingTeamPlayers.map<DropdownMenuItem<Player>>((Player player) {
-                return DropdownMenuItem<Player>(
-                  value: player,
-                  child: Text(player.name),
-                );
-              }).toList(),
             ),
-            SizedBox(height: 10),
-            DropdownButton<Player>(
-              hint: Text('Select Non-Striker'),
+            const SizedBox(height: 16),
+
+            /// Non-Striker
+            DropdownButtonFormField<Player>(
               value: selectedNonStriker,
-              onChanged: (Player? newValue) {
-                setState(() {
-                  selectedNonStriker = newValue;
-                });
+              decoration: getDropdownDecoration("Select Non-Striker"),
+              items: widget.battingTeamPlayers
+                  .map((player) => DropdownMenuItem(
+                        value: player,
+                        child: Text(player.name),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() => selectedNonStriker = value);
               },
-              items: widget.battingTeamPlayers.map<DropdownMenuItem<Player>>((Player player) {
-                return DropdownMenuItem<Player>(
-                  value: player,
-                  child: Text(player.name),
-                );
-              }).toList(),
             ),
-            SizedBox(height: 10),
-            DropdownButton<Player>(
-              hint: Text('Select Bowler'),
+            const SizedBox(height: 16),
+
+            /// Bowler
+            DropdownButtonFormField<Player>(
               value: selectedBowler,
-              onChanged: (Player? newValue) {
-                setState(() {
-                  selectedBowler = newValue;
-                });
+              decoration: getDropdownDecoration("Select Bowler"),
+              items: widget.bowlingTeamPlayers
+                  .map((player) => DropdownMenuItem(
+                        value: player,
+                        child: Text(player.name),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() => selectedBowler = value);
               },
-              items: widget.bowlingTeamPlayers.map<DropdownMenuItem<Player>>((Player player) {
-                return DropdownMenuItem<Player>(
-                  value: player,
-                  child: Text(player.name),
-                );
-              }).toList(),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            /// Start Button
             ElevatedButton(
-              onPressed: (selectedStriker != null && selectedNonStriker != null && selectedBowler != null && selectedStriker != selectedNonStriker) ? () {
-                Navigator.pop(context, {
-                  'striker': selectedStriker,
-                  'nonStriker': selectedNonStriker,
-                  'bowler': selectedBowler,
-                });
-              } : null,
-              child: Text('Start Innings'),
+              onPressed: isValid
+                  ? () {
+                      Navigator.pop(context, {
+                        'striker': selectedStriker,
+                        'nonStriker': selectedNonStriker,
+                        'bowler': selectedBowler,
+                      });
+                    }
+                  : null,
+              style: getPrimaryButtonStyle(isValid),
+              child: const Text("START INNINGS",
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w300,
+                      letterSpacing: 1.2,
+                      color: Colors.white)),
             ),
           ],
         ),

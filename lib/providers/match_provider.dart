@@ -127,6 +127,9 @@ class MatchProvider with ChangeNotifier {
       bowlerId: _currentBowlerId,
     ));
 
+    // Update player statistics
+    _updatePlayerStats(runs, isExtra, extraType, false, null);
+
     _isOverEnd = false; // Reset over end flag
 
     // Handle strike rotation for all deliveries (including extras)
@@ -184,6 +187,9 @@ class MatchProvider with ChangeNotifier {
     } else {
       playerOutId = _currentStrikerId; // For other wicket types, striker is out
     }
+
+    // Update player statistics for wicket
+    _updatePlayerStats(runs, false, '', true, wicketType);
 
     // Update striker/non-striker based on who is out and runs scored
     if (playerOutId == _currentStrikerId) {
@@ -530,5 +536,56 @@ class MatchProvider with ChangeNotifier {
   void clearUndoRedo() {
     _undoStack.clear();
     _redoStack.clear();
+  }
+
+  // Update player statistics based on ball outcome
+  void _updatePlayerStats(int runs, bool isExtra, String extraType,
+      bool isWicket, String? wicketType) {
+    // Update striker's batting stats
+    final striker =
+        battingTeam.players.firstWhere((p) => p.id == _currentStrikerId);
+    final bowler =
+        bowlingTeam.players.firstWhere((p) => p.id == _currentBowlerId);
+
+    // Only count as a ball faced if it's not a wide or no-ball
+    bool isWide = isExtra && extraType == 'wd';
+    bool isNoBall = isExtra && extraType == 'nb';
+
+    // Update striker's batting stats
+    if (!isWide) {
+      // Count runs scored by striker (excluding extras)
+      int runsScored = isExtra ? 0 : runs;
+      bool isDismissed = isWicket &&
+          (wicketType != 'runOut' || _currentStrikerId == _currentStrikerId);
+
+      striker.updateBattingStats(runsScored, isDismissed);
+    }
+
+    // Update bowler's bowling stats
+    if (!isWide) {
+      // Count runs conceded by bowler
+      int runsConceded = runs;
+      bool isWicketTaken =
+          isWicket && (wicketType == 'runOut' || wicketType != 'runOut');
+
+      // Check if it's a maiden (no runs conceded in the over)
+      bool isMaiden = false;
+      if (currentOverBalls.length == 6) {
+        // Over is complete, check if it's a maiden
+        final overRuns =
+            currentOverBalls.fold(0, (sum, ball) => sum + ball.runs);
+        isMaiden = overRuns == 0;
+      }
+
+      bowler.updateBowlingStats(runsConceded, isWicketTaken, isMaiden);
+    }
+
+    // Save updated teams
+    _saveTeams();
+  }
+
+  // Save updated teams to storage
+  void _saveTeams() async {
+    await _matchStorage.saveTeams([_match.team1, _match.team2]);
   }
 }

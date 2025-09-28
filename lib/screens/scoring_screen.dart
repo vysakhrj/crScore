@@ -12,8 +12,11 @@ import 'package:cricket_scorer/widgets/new_batter_dialog.dart';
 import 'package:cricket_scorer/screens/first_innings_summary_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cricket_scorer/screens/home_screen.dart';
 
 class ScoringScreen extends StatefulWidget {
+  const ScoringScreen({super.key});
+
   @override
   _ScoringScreenState createState() => _ScoringScreenState();
 }
@@ -175,504 +178,539 @@ class _ScoringScreenState extends State<ScoringScreen> {
       });
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-            '${matchProvider.match.team1.name} vs ${matchProvider.match.team2.name}',
-            style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.black54,
-                letterSpacing: 1.2)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.score),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        ScorecardScreen(matchProvider: matchProvider)),
-              );
-            },
+    return WillPopScope(
+      onWillPop: () async {
+        final shouldLeave = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Leave Scoring?'),
+            content: const Text('Are you sure you want to leave scoring?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Yes'),
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.show_chart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) =>
-                        WormGraphScreen(match: matchProvider.match)),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // --- NEW HEADER SECTION ---
-          Builder(
-            builder: (context) {
-              if (matchProvider.isFirstInnings) {
-                // FIRST INNINGS HEADER
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            battingTeam.name.toUpperCase() + ' *',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const Icon(Icons.more_horiz, color: Colors.grey),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${matchProvider.totalRuns}',
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                            ),
-                          ),
-                          Text(
-                            '/${matchProvider.totalWickets}',
-                            style: const TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '(${matchProvider.overs}/${matchProvider.match.totalOversPerInnings})',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Text('Run rate',
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black54)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    matchProvider.currentRunRate
-                                        .toStringAsFixed(1),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  const Text('Extras',
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black54)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'NB ${_countExtras(matchProvider, 'nb')}  WD ${_countExtras(matchProvider, 'wd')}',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  const Text('Projected score',
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black54)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    matchProvider.projectedScore
-                                        .toStringAsFixed(0),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+        );
+        if (shouldLeave == true) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => HomeScreen()),
+            (route) => false,
+          );
+          return false;
+        }
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+              '${matchProvider.match.team1.name} vs ${matchProvider.match.team2.name}',
+              style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black54,
+                  letterSpacing: 1.2)),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.score),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          ScorecardScreen(matchProvider: matchProvider)),
                 );
-              } else {
-                // SECOND INNINGS HEADER
-                return Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            matchProvider.match.team1.name.toUpperCase(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '${_getTeamScore(matchProvider.match.innings1)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black54,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24, thickness: 1),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            matchProvider.battingTeam.name.toUpperCase() + ' *',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '${matchProvider.totalRuns}',
-                                style: const TextStyle(
-                                  fontSize: 48,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
-                                ),
-                              ),
-                              Text(
-                                '/${matchProvider.totalWickets}',
-                                style: const TextStyle(
-                                  fontSize: 36,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '(${matchProvider.overs}/${matchProvider.match.totalOversPerInnings})',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black54,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Row(
-                          //   children: [
-                          //     const Text('Req RR',
-                          //         style: TextStyle(
-                          //             fontSize: 14, color: Colors.black54)),
-                          //     const SizedBox(width: 8),
-                          //     Text(
-                          //       matchProvider.requiredRunRate
-                          //           .toStringAsFixed(1),
-                          //       style: const TextStyle(
-                          //           fontWeight: FontWeight.bold, fontSize: 16),
-                          //     ),
-                          //   ],
-                          // ),
-                          // Row(
-                          //   children: [
-                          //     const Text('CRR',
-                          //         style: TextStyle(
-                          //             fontSize: 14, color: Colors.black54)),
-                          //     const SizedBox(width: 8),
-                          //     Text(
-                          //       matchProvider.currentRunRate.toStringAsFixed(1),
-                          //       style: const TextStyle(
-                          //           fontWeight: FontWeight.bold, fontSize: 16),
-                          //     ),
-                          //   ],
-                          // ),
-                          // Row(
-                          //   children: [
-                          //     const Text('Projected score',
-                          //         style: TextStyle(
-                          //             fontSize: 14, color: Colors.black54)),
-                          //     const SizedBox(width: 8),
-                          //     Text(
-                          //       matchProvider.projectedScore.toStringAsFixed(0),
-                          //       style: const TextStyle(
-                          //           fontWeight: FontWeight.bold, fontSize: 16),
-                          //     ),
-                          //   ],
-                          // ),
-                          Row(
-                            children: [
-                              const Text('Extras',
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black54)),
-                              const SizedBox(width: 8),
-                              Text(
-                                'NB ${_countExtras(matchProvider, 'nb')}  WD ${_countExtras(matchProvider, 'wd')}',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                            ],
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  const Text('RRR',
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black54)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    matchProvider.requiredRunRate
-                                        .toStringAsFixed(1),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  const Text('CRR',
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black54)),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    matchProvider.currentRunRate
-                                        .toStringAsFixed(1),
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'TO WIN',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          Text(
-                            '${matchProvider.runsNeeded} in ${matchProvider.ballsRemaining} balls',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.show_chart),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) =>
+                          WormGraphScreen(match: matchProvider.match)),
                 );
-              }
-            },
-          ),
-          // THIS OVER widget
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'THIS OVER',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      '${matchProvider.currentOverRuns} runs (${matchProvider.currentOverBallsLeft} ball${matchProvider.currentOverBallsLeft == 1 ? '' : 's'} left)',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                matchProvider.currentOverBalls.isEmpty
-                    ? const SizedBox(height: 36)
-                    : Row(
-                        children: matchProvider.currentOverBalls.reversed
-                            .map<Widget>((ball) {
-                          final display =
-                              matchProvider.getBallDisplayString(ball);
-                          Color bgColor;
-                          if (display.startsWith('6')) {
-                            bgColor = Colors.red.withOpacity(0.15);
-                          } else if (display.startsWith('4')) {
-                            bgColor = Colors.yellow.withOpacity(0.15);
-                          } else if (display.startsWith('W')) {
-                            bgColor = Colors.grey.withOpacity(0.3);
-                          } else if (display.startsWith('Wd') ||
-                              display.startsWith('Nb')) {
-                            bgColor = Colors.blue.withOpacity(0.15);
-                          } else {
-                            bgColor = Colors.grey.withOpacity(0.1);
-                          }
-                          return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 4.0),
-                            child: Container(
-                              width: 36,
-                              height: 36,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: bgColor,
+              },
+            ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // --- NEW HEADER SECTION ---
+            Builder(
+              builder: (context) {
+                if (matchProvider.isFirstInnings) {
+                  // FIRST INNINGS HEADER
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${battingTeam.name.toUpperCase()} *',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                fontSize: 14,
                               ),
-                              child: Center(
-                                child: Text(
-                                  display,
+                            ),
+                            const Icon(Icons.more_horiz, color: Colors.grey),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${matchProvider.totalRuns}',
+                              style: const TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            Text(
+                              '/${matchProvider.totalWickets}',
+                              style: const TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '(${matchProvider.overs}/${matchProvider.match.totalOversPerInnings})',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text('Run rate',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      matchProvider.currentRunRate
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    const Text('Extras',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'NB ${_countExtras(matchProvider, 'nb')}  WD ${_countExtras(matchProvider, 'wd')}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    const Text('Projected score',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      matchProvider.projectedScore
+                                          .toStringAsFixed(0),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  // SECOND INNINGS HEADER
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              matchProvider.match.team1.name.toUpperCase(),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              '${_getTeamScore(matchProvider.match.innings1)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 24, thickness: 1),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${matchProvider.battingTeam.name.toUpperCase()} *',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${matchProvider.totalRuns}',
                                   style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold),
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1.5,
+                                  ),
                                 ),
+                                Text(
+                                  '/${matchProvider.totalWickets}',
+                                  style: const TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '(${matchProvider.overs}/${matchProvider.match.totalOversPerInnings})',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Row(
+                            //   children: [
+                            //     const Text('Req RR',
+                            //         style: TextStyle(
+                            //             fontSize: 14, color: Colors.black54)),
+                            //     const SizedBox(width: 8),
+                            //     Text(
+                            //       matchProvider.requiredRunRate
+                            //           .toStringAsFixed(1),
+                            //       style: const TextStyle(
+                            //           fontWeight: FontWeight.bold, fontSize: 16),
+                            //     ),
+                            //   ],
+                            // ),
+                            // Row(
+                            //   children: [
+                            //     const Text('CRR',
+                            //         style: TextStyle(
+                            //             fontSize: 14, color: Colors.black54)),
+                            //     const SizedBox(width: 8),
+                            //     Text(
+                            //       matchProvider.currentRunRate.toStringAsFixed(1),
+                            //       style: const TextStyle(
+                            //           fontWeight: FontWeight.bold, fontSize: 16),
+                            //     ),
+                            //   ],
+                            // ),
+                            // Row(
+                            //   children: [
+                            //     const Text('Projected score',
+                            //         style: TextStyle(
+                            //             fontSize: 14, color: Colors.black54)),
+                            //     const SizedBox(width: 8),
+                            //     Text(
+                            //       matchProvider.projectedScore.toStringAsFixed(0),
+                            //       style: const TextStyle(
+                            //           fontWeight: FontWeight.bold, fontSize: 16),
+                            //     ),
+                            //   ],
+                            // ),
+                            Row(
+                              children: [
+                                const Text('Extras',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black54)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'NB ${_countExtras(matchProvider, 'nb')}  WD ${_countExtras(matchProvider, 'wd')}',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16),
+                                ),
+                              ],
+                            ),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('RRR',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      matchProvider.requiredRunRate
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    const Text('CRR',
+                                        style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.black54)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      matchProvider.currentRunRate
+                                          .toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'TO WIN',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                          );
-                        }).toList(),
-                      ),
-              ],
+                            Text(
+                              '${matchProvider.runsNeeded} in ${matchProvider.ballsRemaining} balls',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
             ),
-          ),
-          // Undo/Redo buttons (centered, icon only)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.undo, size: 28),
-                  onPressed: () {
-                    Provider.of<MatchProvider>(context, listen: false).undo();
-                  },
-                  tooltip: 'Undo',
-                ),
-                const SizedBox(width: 24),
-                IconButton(
-                  icon: const Icon(Icons.redo, size: 28),
-                  onPressed: () {
-                    Provider.of<MatchProvider>(context, listen: false).redo();
-                  },
-                  tooltip: 'Redo',
-                ),
-              ],
-            ),
-          ),
-          // Scoring buttons area
-          Expanded(
-            child: Padding(
+            // THIS OVER widget
+            Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left: Circular run buttons
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildCircleScoreButton(context, '0', 0),
-                            _buildCircleScoreButton(context, '1', 1),
-                          ],
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'THIS OVER',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                          fontSize: 16,
                         ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildCircleScoreButton(context, '2', 2),
-                            _buildCircleScoreButton(context, '3', 3),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            _buildCircleScoreButton(context, '4', 4),
-                            _buildCircleScoreButton(context, '6', 6),
-                          ],
-                        ),
-                      ],
-                    ),
+                      ),
+                      Text(
+                        '${matchProvider.currentOverRuns} runs (${matchProvider.currentOverBallsLeft} ball${matchProvider.currentOverBallsLeft == 1 ? '' : 's'} left)',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  // Right: Rectangular action buttons
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _buildRectScoreButton(context, 'WIDE BALL', -1),
-                        const SizedBox(height: 16),
-                        _buildRectScoreButton(context, 'NO BALL', -2),
-                        const SizedBox(height: 16),
-                        _buildRectScoreButton(context, 'WICKET', -3),
-                      ],
-                    ),
+                  const SizedBox(height: 8),
+                  matchProvider.currentOverBalls.isEmpty
+                      ? const SizedBox(height: 36)
+                      : Row(
+                          children: matchProvider.currentOverBalls.reversed
+                              .map<Widget>((ball) {
+                            final display =
+                                matchProvider.getBallDisplayString(ball);
+                            Color bgColor;
+                            if (display.startsWith('6')) {
+                              bgColor = Colors.red.withOpacity(0.15);
+                            } else if (display.startsWith('4')) {
+                              bgColor = Colors.yellow.withOpacity(0.15);
+                            } else if (display.startsWith('W')) {
+                              bgColor = Colors.grey.withOpacity(0.3);
+                            } else if (display.startsWith('Wd') ||
+                                display.startsWith('Nb')) {
+                              bgColor = Colors.blue.withOpacity(0.15);
+                            } else {
+                              bgColor = Colors.grey.withOpacity(0.1);
+                            }
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 4.0),
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: bgColor,
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    display,
+                                    style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ],
+              ),
+            ),
+            // Undo/Redo buttons (centered, icon only)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.undo, size: 28),
+                    onPressed: () {
+                      Provider.of<MatchProvider>(context, listen: false).undo();
+                    },
+                    tooltip: 'Undo',
+                  ),
+                  const SizedBox(width: 24),
+                  IconButton(
+                    icon: const Icon(Icons.redo, size: 28),
+                    onPressed: () {
+                      Provider.of<MatchProvider>(context, listen: false).redo();
+                    },
+                    tooltip: 'Redo',
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+            // Scoring buttons area
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                child: Row(
+                  children: [
+                    // Left: Circular run buttons
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildCircleScoreButton(context, '0', 0),
+                              _buildCircleScoreButton(context, '1', 1),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildCircleScoreButton(context, '2', 2),
+                              _buildCircleScoreButton(context, '3', 3),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildCircleScoreButton(context, '4', 4),
+                              _buildCircleScoreButton(context, '6', 6),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Right: Rectangular action buttons
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildRectScoreButton(context, 'WIDE BALL', -1),
+                          const SizedBox(height: 16),
+                          _buildRectScoreButton(context, 'NO BALL', -2),
+                          const SizedBox(height: 16),
+                          _buildRectScoreButton(context, 'WICKET', -3),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -754,14 +792,14 @@ class _ScoringScreenState extends State<ScoringScreen> {
               }
             }
           },
+          style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.grey[200], foregroundColor: Colors.black),
           child: Text(label.toUpperCase(),
               style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w200,
                   color: Colors.black54,
                   letterSpacing: 1.2)),
-          style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[200], foregroundColor: Colors.black),
         ));
   }
 
@@ -776,7 +814,7 @@ class _ScoringScreenState extends State<ScoringScreen> {
     // innings is of type Innings
     final runs = innings.overs.fold(0, (sum, ball) => sum + ball.runs);
     final wickets = innings.wickets;
-    return ' ${runs}/${wickets}';
+    return ' $runs/$wickets';
   }
 
   Widget _buildCircleScoreButton(

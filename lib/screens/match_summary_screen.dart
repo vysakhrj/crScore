@@ -45,147 +45,159 @@ class MatchSummaryScreen extends StatelessWidget {
     final manOfTheMatch = _findManOfTheMatch(battingStats, bowlingStats);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: Text('${match.team1.name} vs ${match.team2.name}'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: const Color(0xFF2C3E50),
+        title: Text(
+          '${match.team1.name} vs ${match.team2.name}',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.all(16.0),
             child: Center(
               child: Text(
-                DateFormat('MMM dd, yyyy - HH:mm')
-                    .format(DateTime.parse(match.id)),
-                style: TextStyle(fontSize: 12),
+                DateFormat('MMM dd, yyyy').format(DateTime.parse(match.id)),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Color(0xFF7A8B9A),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Match Result
-            Card(
+            // Match Result Card
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
                   children: [
                     const Text(
-                      'Match Result',
-                      style:
-                          TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      'MATCH RESULT',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF7A8B9A),
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 16),
                     Text(
                       resultText,
-                      style: const TextStyle(fontSize: 20, color: Colors.green),
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF2C3E50),
+                      ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      '${match.team1.name}: $innings1Runs/${match.innings1.wickets}',
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    Text(
-                      '${match.team2.name}: $innings2Runs/${match.innings2.wickets}',
-                      style: const TextStyle(fontSize: 16),
+                    const SizedBox(height: 24),
+                    // Team scores display
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTeamScore(
+                            match.team1.name,
+                            match.team1.id == match.innings1.battingTeamId
+                                ? innings1Runs
+                                : innings2Runs,
+                            match.innings1.wickets,
+                            true,
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 60,
+                          color: const Color(0xFFE9ECEF),
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                        ),
+                        Expanded(
+                          child: _buildTeamScore(
+                            match.team2.name,
+                            match.team2.id == match.innings2.battingTeamId
+                                ? innings2Runs
+                                : innings1Runs,
+                            match.innings2.wickets,
+                            false,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
 
-            // Best Batter
+            // Performance Cards
             if (bestBatter != null) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '🏏 Best Batter',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${bestBatter['player'].name}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                          'Runs: ${bestBatter['runs']} | Balls: ${bestBatter['balls']} | SR: ${bestBatter['strikeRate'].toStringAsFixed(1)}'),
-                    ],
-                  ),
-                ),
+              _buildPerformanceCard(
+                title: 'BEST BATTER',
+                icon: '🏏',
+                playerName: bestBatter['player'].name,
+                stats:
+                    'Runs: ${bestBatter['runs']} • Balls: ${bestBatter['balls']} • SR: ${bestBatter['strikeRate'].toStringAsFixed(1)}',
+                backgroundColor: Colors.white,
               ),
               const SizedBox(height: 16),
             ],
 
-            // Best Bowler
             if (bestBowler != null) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '🎯 Best Bowler',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${bestBowler['player'].name}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
-                      Text(
-                          'Wickets: ${bestBowler['wickets']} | Overs: ${bestBowler['overs']} | Econ: ${bestBowler['economy'].toStringAsFixed(2)}'),
-                    ],
-                  ),
-                ),
+              _buildPerformanceCard(
+                title: 'BEST BOWLER',
+                icon: '🎯',
+                playerName: bestBowler['player'].name,
+                stats:
+                    'Wickets: ${bestBowler['wickets']} • Overs: ${bestBowler['overs']} • Econ: ${bestBowler['economy'].toStringAsFixed(2)}',
+                backgroundColor: Colors.white,
               ),
               const SizedBox(height: 16),
             ],
 
-            // Man of the Match
             if (manOfTheMatch != null) ...[
-              Card(
-                color: Colors.amber.shade100,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '🏆 Man of the Match',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${manOfTheMatch['player'].name}',
-                        style: const TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w600),
-                      ),
-                      Text('${manOfTheMatch['reason']}'),
-                    ],
-                  ),
-                ),
+              _buildPerformanceCard(
+                title: 'MAN OF THE MATCH',
+                icon: '🏆',
+                playerName: manOfTheMatch['player'].name,
+                stats: manOfTheMatch['reason'],
+                backgroundColor: const Color(0xFFFFF8E1),
+                isHighlighted: true,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
             ],
 
             // Navigation buttons
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: _buildActionButton(
+                    icon: Icons.assignment,
+                    label: 'Scorecard',
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -201,13 +213,13 @@ class MatchSummaryScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: Icon(Icons.score),
-                    label: Text('Scorecard'),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: _buildActionButton(
+                    icon: Icons.show_chart,
+                    label: 'Worm Graph',
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -216,21 +228,30 @@ class MatchSummaryScreen extends StatelessWidget {
                         ),
                       );
                     },
-                    icon: Icon(Icons.show_chart),
-                    label: Text('Worm Graph'),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
 
             // Back to Home Button
             Center(
-              child: ElevatedButton(
+              child: TextButton(
                 onPressed: () {
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
-                child: const Text('Back to Home'),
+                style: TextButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                ),
+                child: const Text(
+                  'Back to Home',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF7A8B9A),
+                  ),
+                ),
               ),
             ),
           ],
@@ -239,6 +260,180 @@ class MatchSummaryScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildTeamScore(String teamName, int runs, int wickets, bool isLeft) {
+    return Column(
+      crossAxisAlignment:
+          isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      children: [
+        Text(
+          teamName.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF7A8B9A),
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(
+                text: runs.toString(),
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+              TextSpan(
+                text: '/$wickets',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFF7A8B9A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPerformanceCard({
+    required String title,
+    required String icon,
+    required String playerName,
+    required String stats,
+    required Color backgroundColor,
+    bool isHighlighted = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: isHighlighted
+            ? Border.all(color: const Color(0xFFFFD54F), width: 2)
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isHighlighted
+                    ? const Color(0xFFFFD54F).withOpacity(0.2)
+                    : const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(
+                  icon,
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF7A8B9A),
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    playerName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF2C3E50),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    stats,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF7A8B9A),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE9ECEF)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: MaterialButton(
+        onPressed: onPressed,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: const Color(0xFF2C3E50),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2C3E50),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ... (keeping all the existing calculation methods unchanged)
   Map<String, Map<String, dynamic>> _calculateBattingStats() {
     final stats = <String, Map<String, dynamic>>{};
 
