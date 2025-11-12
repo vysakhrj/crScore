@@ -9,12 +9,20 @@ class TeamStanding {
   final int wins;
   final int losses;
   final double winPercentage;
+  final int pointsScored;
+  final int pointsConceded;
+  final int pointDifference; // pointsScored - pointsConceded
+  final int totalSetsPlayed; // Total number of sets played (fewer is better for tie-breaking)
 
   TeamStanding({
     required this.team,
     required this.wins,
     required this.losses,
     required this.winPercentage,
+    required this.pointsScored,
+    required this.pointsConceded,
+    required this.pointDifference,
+    required this.totalSetsPlayed,
   });
 }
 
@@ -708,6 +716,12 @@ class TennisTournament {
       return;
     }
 
+    // Special handling for 3-team round-robin completion
+    if (completedMatch.round == 'Round Robin' && teams.length == 3) {
+      _advanceTopTeamsFromRoundRobin3Teams();
+      return;
+    }
+
     final nextRoundMatches =
         matches.where((match) => match.round == nextRound).toList();
     if (nextRoundMatches.isEmpty) return;
@@ -724,6 +738,35 @@ class TennisTournament {
     }
   }
 
+  // Advance top teams from 3-team round-robin to final
+  void _advanceTopTeamsFromRoundRobin3Teams() {
+    final roundRobinMatches =
+        matches.where((m) => m.round == 'Round Robin').toList();
+    final completedRoundRobinMatches =
+        roundRobinMatches.where((m) => m.isCompleted).toList();
+
+    // Check if all round-robin matches are completed
+    if (completedRoundRobinMatches.length < roundRobinMatches.length) {
+      return; // Not all round-robin matches are done yet
+    }
+
+    // Calculate team standings
+    final teamStandings = calculateTeamStandings();
+    if (teamStandings.length < 2) return;
+
+    // Get top 2 teams for final
+    final topTeams =
+        teamStandings.take(2).map((standing) => standing.team).toList();
+
+    // Assign to final
+    final finalMatches =
+        matches.where((m) => m.round == 'Final').toList();
+    if (finalMatches.isNotEmpty) {
+      finalMatches[0].team1 = topTeams[0];
+      finalMatches[0].team2 = topTeams[1];
+    }
+  }
+
   // Advance top teams from round-robin to semi-finals
   void _advanceTopTeamsFromRoundRobin() {
     final roundRobinMatches =
@@ -737,7 +780,7 @@ class TennisTournament {
     }
 
     // Calculate team standings
-    final teamStandings = _calculateTeamStandings();
+    final teamStandings = calculateTeamStandings();
     if (teamStandings.length < 4) return;
 
     // Get top 4 teams
@@ -756,7 +799,7 @@ class TennisTournament {
   }
 
   // Calculate team standings from round-robin matches
-  List<TeamStanding> _calculateTeamStandings() {
+  List<TeamStanding> calculateTeamStandings() {
     final standings = <TeamStanding>[];
 
     for (final team in teams) {
@@ -769,6 +812,9 @@ class TennisTournament {
 
       int wins = 0;
       int losses = 0;
+      int pointsScored = 0;
+      int pointsConceded = 0;
+      int totalSetsPlayed = 0;
 
       for (final match in teamMatches) {
         if (match.winner?.id == team.id) {
@@ -776,21 +822,54 @@ class TennisTournament {
         } else {
           losses++;
         }
+
+        // Calculate points scored and conceded
+        if (match.team1?.id == team.id) {
+          pointsScored += match.team1TotalPoints;
+          pointsConceded += match.team2TotalPoints;
+        } else if (match.team2?.id == team.id) {
+          pointsScored += match.team2TotalPoints;
+          pointsConceded += match.team1TotalPoints;
+        }
+
+        // Count total sets played (number of completed sets in the match)
+        totalSetsPlayed += match.setPointHistory.length;
+        // If match is in progress, count current set if it has points
+        if (!match.isCompleted && (match.team1CurrentPoints > 0 || match.team2CurrentPoints > 0)) {
+          totalSetsPlayed += 1;
+        }
       }
+
+      final pointDifference = pointsScored - pointsConceded;
+      final winPercentage = (wins + losses) > 0 ? wins / (wins + losses) : 0.0;
 
       standings.add(TeamStanding(
         team: team,
         wins: wins,
         losses: losses,
-        winPercentage: wins / (wins + losses),
+        winPercentage: winPercentage,
+        pointsScored: pointsScored,
+        pointsConceded: pointsConceded,
+        pointDifference: pointDifference,
+        totalSetsPlayed: totalSetsPlayed,
       ));
     }
 
-    // Sort by wins (descending), then by win percentage
+    // Sort by wins (descending), then by point difference (descending), 
+    // then by sets played (ascending - fewer sets is better), then by win percentage
     standings.sort((a, b) {
       if (a.wins != b.wins) {
         return b.wins.compareTo(a.wins);
       }
+      // If wins are equal, use point difference
+      if (a.pointDifference != b.pointDifference) {
+        return b.pointDifference.compareTo(a.pointDifference);
+      }
+      // If point difference is also equal, use sets played (fewer is better)
+      if (a.totalSetsPlayed != b.totalSetsPlayed) {
+        return a.totalSetsPlayed.compareTo(b.totalSetsPlayed);
+      }
+      // If sets played is also equal, use win percentage
       return b.winPercentage.compareTo(a.winPercentage);
     });
 

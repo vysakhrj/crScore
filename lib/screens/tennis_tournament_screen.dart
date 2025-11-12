@@ -2,9 +2,10 @@ import 'package:cricket_scorer/models/tennis_player.dart';
 import 'package:cricket_scorer/models/tennis_tournament.dart';
 import 'package:cricket_scorer/models/tennis_team.dart';
 import 'package:cricket_scorer/models/tennis_match.dart';
-import 'package:cricket_scorer/services/match_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:uuid/uuid.dart';
+import 'package:confetti/confetti.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:math';
 
 class TennisTournamentScreen extends StatefulWidget {
@@ -17,7 +18,6 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
   final _newPlayerNameController = TextEditingController();
   final _pointsToWinSetController = TextEditingController(text: '10');
   final _setsToWinController = TextEditingController(text: '3');
-  final MatchStorage _matchStorage = MatchStorage();
 
   List<TennisPlayer> allPlayers = [];
   List<TennisPlayer> selectedPlayers = [];
@@ -25,11 +25,88 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
   TennisTournament? currentTournament;
   bool isTournamentStarted = false;
 
+  // Confetti controller
+  late ConfettiController _confettiController;
+
+  // Text-to-speech
+  late FlutterTts _flutterTts;
+  bool _ttsInitialized = false;
+  bool _ttsEnabled = true; // Toggle for TTS on/off
+  DateTime? _lastTtsTime;
+
   @override
   void initState() {
     super.initState();
     _loadPlayers();
     _generateTournamentName();
+    _initializeConfetti();
+    _initializeTts();
+  }
+
+  void _initializeConfetti() {
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 2));
+  }
+
+  Future<void> _initializeTts() async {
+    try {
+      _flutterTts = FlutterTts();
+      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setSpeechRate(0.5);
+      await _flutterTts.setVolume(1.0);
+      await _flutterTts.setPitch(1.0);
+      _ttsInitialized = true;
+    } catch (e) {
+      // TTS not available (e.g., on web or if plugin not properly linked)
+      // Silently disable TTS feature
+      print('TTS initialization failed: $e');
+      _ttsInitialized = false;
+    }
+  }
+
+  Future<void> _speakScore(TennisMatch match) async {
+    if (!_ttsInitialized || !_ttsEnabled) return;
+
+    try {
+      // Throttle TTS to avoid speaking too frequently (max once per 2 seconds)
+      final now = DateTime.now();
+      if (_lastTtsTime != null &&
+          now.difference(_lastTtsTime!).inMilliseconds < 2000) {
+        return;
+      }
+      _lastTtsTime = now;
+
+      final team1Points = match.team1CurrentPoints;
+      final team2Points = match.team2CurrentPoints;
+
+      // Just say the current set score: "4 0" (without dash)
+      final scoreText = '$team1Points $team2Points';
+
+      // Stop any ongoing speech before speaking new score
+      await _flutterTts.stop();
+      await _flutterTts.speak(scoreText);
+    } catch (e) {
+      // TTS failed, disable it to avoid repeated errors
+      print('TTS speak failed: $e');
+      _ttsInitialized = false;
+    }
+  }
+
+  void _triggerConfetti() {
+    _confettiController.play();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    if (_ttsInitialized) {
+      try {
+        _flutterTts.stop();
+      } catch (e) {
+        // Ignore errors during disposal
+      }
+    }
+    super.dispose();
   }
 
   void _generateTournamentName() {
@@ -53,9 +130,11 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
         TennisPlayer(id: '4', name: 'Karthik'),
         TennisPlayer(id: '5', name: 'Kichu'),
         TennisPlayer(id: '6', name: 'Vysakh'),
-        TennisPlayer(id: '7', name: 'Kuttayi'),
-        TennisPlayer(id: '8', name: 'Thrilok'),
-        TennisPlayer(id: '9', name: 'Athira')
+        TennisPlayer(id: '7', name: 'Vishnu'),
+        TennisPlayer(id: '8', name: 'Akhil'),
+        TennisPlayer(id: '9', name: 'Kuttayi'),
+        TennisPlayer(id: '10', name: 'Thrilok'),
+        TennisPlayer(id: '11', name: 'Athira')
       ];
     });
   }
@@ -294,6 +373,32 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      body: Stack(
+        children: [
+          _buildMainContent(),
+          // Confetti overlay
+          Align(
+            alignment: Alignment.center,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              maxBlastForce: 5,
+              minBlastForce: 2,
+              emissionFrequency: 0.05,
+              numberOfParticles: 20,
+              gravity: 0.1,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.orange,
+                Colors.yellow,
+                Colors.red,
+              ],
+            ),
+          ),
+        ],
+      ),
       appBar: AppBar(
         title: Text(
           'BADMINTON TOURNAMENT',
@@ -307,6 +412,22 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          // TTS Toggle Button
+          if (isTournamentStarted)
+            IconButton(
+              icon: Icon(
+                _ttsEnabled ? Icons.volume_up : Icons.volume_off,
+                color: _ttsEnabled ? Colors.grey[700] : Colors.grey[400],
+              ),
+              onPressed: () {
+                setState(() {
+                  _ttsEnabled = !_ttsEnabled;
+                });
+              },
+              tooltip: _ttsEnabled ? 'Turn off voice' : 'Turn on voice',
+            ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
@@ -315,7 +436,6 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
           ),
         ),
       ),
-      body: isTournamentStarted ? _buildTournamentView() : _buildSetupView(),
       // floatingActionButton: !isTournamentStarted
       //     ? FloatingActionButton(
       //         onPressed: _showAddPlayerDialog,
@@ -325,6 +445,10 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
       //       )
       //     : null,
     );
+  }
+
+  Widget _buildMainContent() {
+    return isTournamentStarted ? _buildTournamentView() : _buildSetupView();
   }
 
   Widget buildFlatButton(String text, VoidCallback onPressed) {
@@ -722,7 +846,7 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
     if (currentTournament == null) return Container();
 
     return DefaultTabController(
-      length: currentTournament!.teams.length == 4 ? 4 : 3,
+      length: currentTournament!.teams.length == 4 ? 3 : 2,
       child: Column(
         children: [
           // Tournament Header
@@ -765,7 +889,6 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.black,
               tabs: [
-                const Tab(text: 'FIXTURES'),
                 const Tab(text: 'BRACKET'),
                 const Tab(text: 'TEAMS'),
                 if (currentTournament!.teams.length == 4)
@@ -778,7 +901,6 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
           Expanded(
             child: TabBarView(
               children: [
-                _buildFixturesTab(),
                 _buildBracketTab(),
                 _buildTeamsTab(),
                 if (currentTournament!.teams.length == 4) _buildStandingsTab(),
@@ -790,323 +912,96 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
     );
   }
 
-  Widget _buildFixturesTab() {
-    final allMatches = currentTournament!.matches;
-    print('DEBUG: Number of matches: ${allMatches.length}');
-    print('DEBUG: Tournament teams: ${currentTournament!.teams.length}');
-    print('DEBUG: Tournament isStarted: ${currentTournament!.isStarted}');
-
-    if (allMatches.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('No matches scheduled yet.'),
-            const SizedBox(height: 16),
-            const Text('Debug info:'),
-            Text('Teams: ${currentTournament!.teams.length}'),
-            Text('Is Started: ${currentTournament!.isStarted}'),
-            Text('Matches: ${allMatches.length}'),
-          ],
+  Widget _buildTeamWithAvatars(TennisTeam? team, bool isWinner,
+      {bool isRightAligned = false}) {
+    if (team == null) {
+      return Text(
+        'TBD',
+        textAlign: isRightAligned ? TextAlign.end : TextAlign.start,
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[600],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: allMatches.length,
-      itemBuilder: (context, index) {
-        final match = allMatches[index];
-        return Card(
-          margin: const EdgeInsets.only(bottom: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Match header
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: _getRoundColor(match.round),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        match.round,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: _getRoundTextColor(match.round),
-                        ),
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Match ${match.matchNumber}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
+    // Stack of overlapping avatars
+    final avatarStack = SizedBox(
+      width: 40,
+      height: 24,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: isRightAligned ? 12 : 0,
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: isWinner ? Colors.green[100] : Colors.grey[300],
+              child: Text(
+                team.player1.name.substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isWinner ? Colors.green[700] : Colors.grey[700],
                 ),
-                const SizedBox(height: 12),
-
-                // Teams and score
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        match.team1?.name ?? 'TBD',
-                        style: TextStyle(
-                          fontWeight: match.winner?.id == match.team1?.id
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: match.winner?.id == match.team1?.id
-                              ? Colors.green[700]
-                              : Colors.grey[800],
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        match.scoreDisplay,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        match.team2?.name ?? 'TBD',
-                        textAlign: TextAlign.end,
-                        style: TextStyle(
-                          fontWeight: match.winner?.id == match.team2?.id
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          color: match.winner?.id == match.team2?.id
-                              ? Colors.green[700]
-                              : Colors.grey[800],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                // Set history
-                if (match.setHistoryDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Sets: ${match.setHistoryDisplay}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
-
-                // Current set points and scoring buttons
-                if (!match.isCompleted &&
-                    match.team1 != null &&
-                    match.team2 != null) ...[
-                  const SizedBox(height: 12),
-                  // Match settings info
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      'First to ${match.pointsToWinSet} points • Best of ${match.setsToWin} sets',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '${match.team1CurrentPoints}',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    match.incrementPoint(true);
-                                    if (match.isCompleted) {
-                                      currentTournament!.advanceWinner(match);
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                child: const Text('+1 Point'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Text(
-                              '${match.team2CurrentPoints}',
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    match.incrementPoint(false);
-                                    if (match.isCompleted) {
-                                      currentTournament!.advanceWinner(match);
-                                    }
-                                  });
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.black,
-                                  foregroundColor: Colors.white,
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 8),
-                                ),
-                                child: const Text('+1 Point'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Undo and Reset buttons
-                  if (match.canUndo || match.canReset) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (match.canUndo)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  match.undoLastPoint();
-                                });
-                              },
-                              icon: const Icon(Icons.undo, size: 16),
-                              label: const Text('Undo'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.orange[700],
-                                side: BorderSide(color: Colors.orange[300]!),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                              ),
-                            ),
-                          ),
-                        if (match.canUndo && match.canReset)
-                          const SizedBox(width: 8),
-                        if (match.canReset)
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                setState(() {
-                                  match.resetCurrentSet();
-                                });
-                              },
-                              icon: const Icon(Icons.refresh, size: 16),
-                              label: const Text('Reset Set'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.red[700],
-                                side: BorderSide(color: Colors.red[300]!),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
-
-                // Match status
-                if (match.isCompleted) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Winner: ${match.winner?.name ?? "TBD"}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.green[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ] else if (match.team1 == null || match.team2 == null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Waiting for teams to advance',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange[700],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-
-                // // Scheduled time
-                // if (match.scheduledTime != null) ...[
-                //   const SizedBox(height: 8),
-                //   Row(
-                //     children: [
-                //       Icon(Icons.schedule, size: 16, color: Colors.grey[600]),
-                //       const SizedBox(width: 4),
-                //       Text(
-                //         _formatDateTime(match.scheduledTime!),
-                //         style: TextStyle(
-                //           fontSize: 12,
-                //           color: Colors.grey[600],
-                //           fontWeight: FontWeight.w500,
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ],
-              ],
+              ),
             ),
           ),
-        );
-      },
+          Positioned(
+            left: isRightAligned ? 0 : 12,
+            child: CircleAvatar(
+              radius: 12,
+              backgroundColor: isWinner ? Colors.green[100] : Colors.grey[300],
+              child: Text(
+                team.player2.name.substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isWinner ? Colors.green[700] : Colors.grey[700],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
+
+    // Team name - show full name with proper wrapping
+    final teamName = Flexible(
+      child: Text(
+        team.name,
+        style: TextStyle(
+          fontWeight: isWinner ? FontWeight.bold : FontWeight.normal,
+          color: isWinner ? Colors.green[700] : Colors.grey[800],
+          fontSize: 12,
+        ),
+        maxLines: 2,
+        overflow: TextOverflow.visible,
+        textAlign: isRightAligned ? TextAlign.end : TextAlign.start,
+      ),
+    );
+
+    if (isRightAligned) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          teamName,
+          const SizedBox(width: 8),
+          avatarStack,
+        ],
+      );
+    } else {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          avatarStack,
+          const SizedBox(width: 8),
+          teamName,
+        ],
+      );
+    }
   }
 
   Color _getRoundColor(String round) {
@@ -1311,20 +1206,14 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-            // Team names and set score
+            // Team names with avatars and set score
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    match.team1?.name ?? 'TBD',
-                    style: TextStyle(
-                      fontWeight: match.winner?.id == match.team1?.id
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: match.winner?.id == match.team1?.id
-                          ? Colors.green[700]
-                          : Colors.grey[800],
-                    ),
+                  flex: 2,
+                  child: _buildTeamWithAvatars(
+                    match.team1,
+                    match.winner?.id == match.team1?.id,
                   ),
                 ),
                 Container(
@@ -1343,17 +1232,11 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
                   ),
                 ),
                 Expanded(
-                  child: Text(
-                    match.team2?.name ?? 'TBD',
-                    textAlign: TextAlign.end,
-                    style: TextStyle(
-                      fontWeight: match.winner?.id == match.team2?.id
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: match.winner?.id == match.team2?.id
-                          ? Colors.green[700]
-                          : Colors.grey[800],
-                    ),
+                  flex: 2,
+                  child: _buildTeamWithAvatars(
+                    match.team2,
+                    match.winner?.id == match.team2?.id,
+                    isRightAligned: true,
                   ),
                 ),
               ],
@@ -1367,6 +1250,27 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
                 style: TextStyle(
                   fontSize: 10,
                   color: Colors.grey[600],
+                ),
+              ),
+            ],
+
+            // Point history for each set (compact version for bracket)
+            if (match.pointHistoryDisplay.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Text(
+                  match.pointHistoryDisplay,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.blue[800],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -1409,13 +1313,16 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              final wasCompleted = match.isCompleted;
                               setState(() {
                                 match.incrementPoint(true);
-                                if (match.isCompleted) {
+                                if (match.isCompleted && !wasCompleted) {
                                   currentTournament!.advanceWinner(match);
+                                  _triggerConfetti();
                                 }
                               });
+                              await _speakScore(match);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
@@ -1445,13 +1352,16 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              final wasCompleted = match.isCompleted;
                               setState(() {
                                 match.incrementPoint(false);
-                                if (match.isCompleted) {
+                                if (match.isCompleted && !wasCompleted) {
                                   currentTournament!.advanceWinner(match);
+                                  _triggerConfetti();
                                 }
                               });
+                              await _speakScore(match);
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
@@ -1547,53 +1457,21 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
       );
     }
 
-    // Calculate standings
-    final standings = <Map<String, dynamic>>[];
-
-    for (final team in currentTournament!.teams) {
-      final teamMatches = roundRobinMatches
-          .where((m) =>
-              m.isCompleted &&
-              (m.team1?.id == team.id || m.team2?.id == team.id))
-          .toList();
-
-      int wins = 0;
-      int losses = 0;
-
-      for (final match in teamMatches) {
-        if (match.winner?.id == team.id) {
-          wins++;
-        } else {
-          losses++;
-        }
-      }
-
-      standings.add({
-        'team': team,
-        'wins': wins,
-        'losses': losses,
-        'winPercentage': wins / (wins + losses),
-      });
-    }
-
-    // Sort by wins (descending), then by win percentage
-    standings.sort((a, b) {
-      if (a['wins'] != b['wins']) {
-        return (b['wins'] as int).compareTo(a['wins'] as int);
-      }
-      return (b['winPercentage'] as double)
-          .compareTo(a['winPercentage'] as double);
-    });
+    // Calculate standings using the tournament's method
+    final teamStandings = currentTournament!.calculateTeamStandings();
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: standings.length,
+      itemCount: teamStandings.length,
       itemBuilder: (context, index) {
-        final standing = standings[index];
-        final team = standing['team'] as TennisTeam;
-        final wins = standing['wins'] as int;
-        final losses = standing['losses'] as int;
-        final winPercentage = standing['winPercentage'] as double;
+        final standing = teamStandings[index];
+        final team = standing.team;
+        final wins = standing.wins;
+        final losses = standing.losses;
+        final winPercentage = standing.winPercentage;
+        final pointsScored = standing.pointsScored;
+        final pointsConceded = standing.pointsConceded;
+        final pointDifference = standing.pointDifference;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 8),
@@ -1615,12 +1493,27 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
                 color: index < 4 ? Colors.green[700] : Colors.grey[800],
               ),
             ),
-            subtitle: Text(
-              '${wins}W ${losses}L • ${(winPercentage * 100).toStringAsFixed(1)}%',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 4),
+                Text(
+                  '${wins}W ${losses}L • ${(winPercentage * 100).toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Points: $pointsScored-$pointsConceded (${pointDifference >= 0 ? '+' : ''}$pointDifference)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey[500],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
             trailing: index < 4
                 ? Container(

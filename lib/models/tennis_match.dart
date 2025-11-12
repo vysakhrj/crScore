@@ -9,7 +9,8 @@ class TennisMatch {
   List<int> team2SetScores;
   int team1CurrentPoints;
   int team2CurrentPoints;
-  List<bool> pointHistory; // true for team1, false for team2
+  List<bool> pointHistory; // true for team1, false for team2 (current set only)
+  List<List<int>> setPointHistory; // Point scores for each completed set [team1Points, team2Points]
   int setsToWin;
   int pointsToWinSet; // Configurable points to win a set
   String round; // "Quarter Final", "Semi Final", "Final"
@@ -29,6 +30,7 @@ class TennisMatch {
     this.team1CurrentPoints = 0,
     this.team2CurrentPoints = 0,
     this.pointHistory = const [],
+    this.setPointHistory = const [],
     this.setsToWin = 3, // Default to best of 3 sets
     this.pointsToWinSet = 10, // Default to 21 points
     this.isCompleted = false,
@@ -46,6 +48,10 @@ class TennisMatch {
       team1CurrentPoints: json['team1CurrentPoints'] ?? 0,
       team2CurrentPoints: json['team2CurrentPoints'] ?? 0,
       pointHistory: List<bool>.from(json['pointHistory'] ?? []),
+      setPointHistory: (json['setPointHistory'] as List?)
+              ?.map((set) => List<int>.from(set))
+              .toList() ??
+          [],
       setsToWin: json['setsToWin'] ?? 3,
       pointsToWinSet: json['pointsToWinSet'] ?? 10,
       round: json['round'],
@@ -68,6 +74,7 @@ class TennisMatch {
       'team1CurrentPoints': team1CurrentPoints,
       'team2CurrentPoints': team2CurrentPoints,
       'pointHistory': pointHistory,
+      'setPointHistory': setPointHistory,
       'setsToWin': setsToWin,
       'pointsToWinSet': pointsToWinSet,
       'round': round,
@@ -123,7 +130,9 @@ class TennisMatch {
       team1CurrentPoints++;
       if (team1CurrentPoints >= pointsToWinSet &&
           team1CurrentPoints - team2CurrentPoints >= 2) {
-        // Team 1 wins set
+        // Team 1 wins set - save the point scores before resetting
+        setPointHistory = List<List<int>>.from(setPointHistory)
+          ..add([team1CurrentPoints, team2CurrentPoints]);
         team1SetScores = List<int>.from(team1SetScores)..add(1);
         team2SetScores = List<int>.from(team2SetScores)..add(0);
         team1CurrentPoints = 0;
@@ -136,7 +145,9 @@ class TennisMatch {
       team2CurrentPoints++;
       if (team2CurrentPoints >= pointsToWinSet &&
           team2CurrentPoints - team1CurrentPoints >= 2) {
-        // Team 2 wins set
+        // Team 2 wins set - save the point scores before resetting
+        setPointHistory = List<List<int>>.from(setPointHistory)
+          ..add([team1CurrentPoints, team2CurrentPoints]);
         team1SetScores = List<int>.from(team1SetScores)..add(0);
         team2SetScores = List<int>.from(team2SetScores)..add(1);
         team1CurrentPoints = 0;
@@ -170,6 +181,49 @@ class TennisMatch {
       history.add('$t1-$t2');
     }
     return history.isEmpty ? '' : history.join(', ');
+  }
+
+  // Get point history display for each set
+  String get pointHistoryDisplay {
+    if (setPointHistory.isEmpty) return '';
+    List<String> history = [];
+    for (int i = 0; i < setPointHistory.length; i++) {
+      final setPoints = setPointHistory[i];
+      history.add('Set ${i + 1}: ${setPoints[0]}-${setPoints[1]}');
+    }
+    // Add current set if in progress
+    if (team1CurrentPoints > 0 || team2CurrentPoints > 0) {
+      history.add('Current: $team1CurrentPoints-$team2CurrentPoints');
+    }
+    return history.join(' | ');
+  }
+
+  // Get total points scored by team1 in this match
+  int get team1TotalPoints {
+    int total = team1CurrentPoints;
+    for (final setPoints in setPointHistory) {
+      total += setPoints[0];
+    }
+    return total;
+  }
+
+  // Get total points scored by team2 in this match
+  int get team2TotalPoints {
+    int total = team2CurrentPoints;
+    for (final setPoints in setPointHistory) {
+      total += setPoints[1];
+    }
+    return total;
+  }
+
+  // Get point difference for team1 (points scored - points conceded)
+  int get team1PointDifference {
+    return team1TotalPoints - team2TotalPoints;
+  }
+
+  // Get point difference for team2 (points scored - points conceded)
+  int get team2PointDifference {
+    return team2TotalPoints - team1TotalPoints;
   }
 
   // Undo last point
