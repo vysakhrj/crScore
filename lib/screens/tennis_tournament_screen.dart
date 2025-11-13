@@ -269,6 +269,7 @@ class _TennisTournamentScreenState extends State<TennisTournamentScreen> {
           backgroundColor: Colors.red,
         ),
       );
+      return;
     }
 
     // Validate match settings

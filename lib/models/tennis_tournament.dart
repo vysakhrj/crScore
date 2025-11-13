@@ -12,7 +12,8 @@ class TeamStanding {
   final int pointsScored;
   final int pointsConceded;
   final int pointDifference; // pointsScored - pointsConceded
-  final int totalSetsPlayed; // Total number of sets played (fewer is better for tie-breaking)
+  final int
+      totalSetsPlayed; // Total number of sets played (fewer is better for tie-breaking)
 
   TeamStanding({
     required this.team,
@@ -52,7 +53,7 @@ class TennisTournament {
     required this.createdAt,
     this.isStarted = false,
     this.isCompleted = false,
-    this.pointsToWinSet = 10, // Default to 21 points
+    this.pointsToWinSet = 21, // Default to 21 points
     this.setsToWin = 3, // Default to best of 3 sets
   })  : selectedPlayers = selectedPlayers ?? [],
         defaultTeamPlayers = defaultTeamPlayers ?? [],
@@ -109,25 +110,42 @@ class TennisTournament {
       throw Exception('No players selected');
     }
 
+    if (selectedPlayers.length % 2 != 0) {
+      throw Exception('Selected players count must be even to form teams');
+    }
+
     teams = [];
 
     // First, create the default team if specified
-    if (defaultTeamPlayers.length == 2) {
+    final selectedPlayerIds =
+        selectedPlayers.map((player) => player.id).toSet();
+    final selectedDefaultPlayers = defaultTeamPlayers
+        .where((player) => selectedPlayerIds.contains(player.id))
+        .toList();
+
+    if (selectedDefaultPlayers.length == 2) {
       final defaultTeam = TennisTeam(
         id: 'team_1',
-        player1: defaultTeamPlayers[0],
-        player2: defaultTeamPlayers[1],
+        player1: selectedDefaultPlayers[0],
+        player2: selectedDefaultPlayers[1],
       );
       teams.add(defaultTeam);
       print(
-          'DEBUG: Created default team: ${defaultTeamPlayers[0].name} & ${defaultTeamPlayers[1].name}');
+          'DEBUG: Created default team: ${selectedDefaultPlayers[0].name} & ${selectedDefaultPlayers[1].name}');
+    } else if (selectedDefaultPlayers.isNotEmpty) {
+      print(
+          'DEBUG: Default team players must both be selected to form the default pair. Ignoring partial selection.');
     }
 
     // Get remaining players (excluding default team players)
     final remainingPlayers = selectedPlayers
-        .where(
-            (player) => !defaultTeamPlayers.any((dtp) => dtp.id == player.id))
+        .where((player) =>
+            !selectedDefaultPlayers.any((dtp) => dtp.id == player.id))
         .toList();
+
+    if (remainingPlayers.length % 2 != 0) {
+      throw Exception('Remaining players must form complete teams');
+    }
 
     if (remainingPlayers.isNotEmpty) {
       final shuffledRemainingPlayers =
@@ -135,33 +153,18 @@ class TennisTournament {
       await Future.delayed(const Duration(milliseconds: 100));
       shuffledRemainingPlayers.shuffle(Random());
 
-      // Handle different team sizes based on number of remaining players
-      if (remainingPlayers.length % 2 == 0) {
-        // Even number: create pairs
-        for (int i = 0; i < shuffledRemainingPlayers.length; i += 2) {
-          final team = TennisTeam(
-            id: 'team_${teams.length + 1}',
-            player1: shuffledRemainingPlayers[i],
-            player2: shuffledRemainingPlayers[i + 1],
-          );
-          teams.add(team);
-        }
-      } else {
-        // Odd number: create individual players as teams
-        for (int i = 0; i < shuffledRemainingPlayers.length; i++) {
-          final team = TennisTeam(
-            id: 'team_${teams.length + 1}',
-            player1: shuffledRemainingPlayers[i],
-            player2:
-                shuffledRemainingPlayers[i], // Same player for both positions
-          );
-          teams.add(team);
-        }
+      for (int i = 0; i < shuffledRemainingPlayers.length; i += 2) {
+        final team = TennisTeam(
+          id: 'team_${teams.length + 1}',
+          player1: shuffledRemainingPlayers[i],
+          player2: shuffledRemainingPlayers[i + 1],
+        );
+        teams.add(team);
       }
     }
 
     print(
-        'DEBUG: Generated ${teams.length} teams from ${selectedPlayers.length} players (${defaultTeamPlayers.length} in default team)');
+        'DEBUG: Generated ${teams.length} teams from ${selectedPlayers.length} players (${selectedDefaultPlayers.length} in default team)');
   }
 
   // Generate tournament bracket and matches
@@ -170,60 +173,120 @@ class TennisTournament {
       throw Exception('Teams must be generated before matches');
     }
 
-    print('DEBUG: Starting generateMatches with ${teams.length} teams');
+    final teamCount = teams.length;
+    if (teamCount < 2) {
+      throw Exception(
+          'At least two teams are required to start the tournament');
+    }
+
+    print('DEBUG: Starting generateMatches with $teamCount teams');
     matches = [];
     int matchNumber = 1;
+    final DateTime baseTime =
+        DateTime.now().add(const Duration(days: 1, hours: 9));
+    const int spacingMinutes = 90;
 
-    // Determine tournament structure based on number of teams
-    if (teams.length == 2) {
+    if (teamCount == 2) {
       print('DEBUG: Generating 2-team tournament (Final only)');
-      _generateFinal(matchNumber);
-    } else if (teams.length == 3) {
-      print('DEBUG: Generating 3-team tournament (Round-robin + Final)');
-      _generateRoundRobin(matchNumber);
-      matchNumber += 3; // 3 round-robin matches
-      _generateFinal(matchNumber);
-    } else if (teams.length == 4) {
-      print(
-          'DEBUG: Generating 4-team tournament (Round-robin + Semi-finals + Final)');
-      // Round-robin matches first, then semi-finals and final
-      _generateRoundRobin4Teams(matchNumber);
-      matchNumber += 6; // 6 round-robin matches (4 teams = 6 matches)
-      _generateSemiFinals(matchNumber);
-      matchNumber += 2;
-      _generateFinal(matchNumber);
-    } else if (teams.length == 5) {
-      print('DEBUG: Generating 5-team tournament (Modified bracket)');
-      _generateModifiedBracket5Teams(matchNumber);
-    } else if (teams.length == 6) {
-      print('DEBUG: Generating 6-team tournament (Modified bracket)');
-      _generateModifiedBracket6Teams(matchNumber);
-    } else if (teams.length == 7) {
-      print('DEBUG: Generating 7-team tournament (Modified bracket)');
-      _generateModifiedBracket7Teams(matchNumber);
-    } else if (teams.length == 8) {
-      print(
-          'DEBUG: Generating 8-team tournament (Round-robin + Semi-finals + Final)');
-      // Round-robin matches first, then semi-finals and final
-      _generateRoundRobin8Teams(matchNumber);
-      matchNumber += 28; // 28 round-robin matches (8 teams = 28 matches)
-      _generateSemiFinals(matchNumber);
-      matchNumber += 2;
-      _generateFinal(matchNumber);
-    } else if (teams.length == 16) {
-      print(
-          'DEBUG: Generating 16-team tournament (Round of 16 + Quarter-finals + Semi-finals + Final)');
-      // Round of 16, quarter-finals, semi-finals, and final
-      _generateRoundOf16(matchNumber);
-      matchNumber += 8;
-      _generateQuarterFinals(matchNumber);
-      matchNumber += 4;
-      _generateSemiFinals(matchNumber);
-      matchNumber += 2;
-      _generateFinal(matchNumber);
+      matches.add(TennisMatch(
+        id: 'match_$matchNumber',
+        team1: teams[0],
+        team2: teams[1],
+        round: 'Final',
+        matchNumber: matchNumber,
+        scheduledTime: baseTime,
+        pointsToWinSet: pointsToWinSet,
+        setsToWin: setsToWin,
+      ));
     } else {
-      throw Exception(
-          'Tournament requires 2-8 or 16 teams. Current teams: ${teams.length}');
+      // Generate all round-robin match pairs first
+      final List<TennisMatch> roundRobinMatches = [];
+      int tempMatchNumber = 1;
+
+      for (int i = 0; i < teamCount - 1; i++) {
+        for (int j = i + 1; j < teamCount; j++) {
+          roundRobinMatches.add(TennisMatch(
+            id: 'match_$tempMatchNumber',
+            team1: teams[i],
+            team2: teams[j],
+            round: 'Round Robin',
+            matchNumber: tempMatchNumber,
+            scheduledTime: baseTime, // Will be updated after sorting
+            pointsToWinSet: pointsToWinSet,
+            setsToWin: setsToWin,
+          ));
+          tempMatchNumber++;
+        }
+      }
+
+      // Sort matches so no team plays in consecutive matches
+      final sortedMatches = _sortMatchesToAvoidAdjacentTeams(roundRobinMatches);
+
+      // Assign match numbers and scheduled times to sorted matches
+      int roundRobinIndex = 0;
+      for (final match in sortedMatches) {
+        match.id = 'match_$matchNumber';
+        match.matchNumber = matchNumber;
+        match.scheduledTime =
+            baseTime.add(Duration(minutes: roundRobinIndex * spacingMinutes));
+        matches.add(match);
+        matchNumber++;
+        roundRobinIndex++;
+      }
+
+      final DateTime knockoutBaseTime = baseTime
+          .add(Duration(minutes: (roundRobinIndex + 1) * spacingMinutes));
+
+      if (teamCount == 3) {
+        print('DEBUG: Generating 3-team tournament (Round-robin + Final)');
+        matches.add(TennisMatch(
+          id: 'match_$matchNumber',
+          team1: null,
+          team2: null,
+          round: 'Final',
+          matchNumber: matchNumber,
+          scheduledTime: knockoutBaseTime,
+          pointsToWinSet: pointsToWinSet,
+          setsToWin: setsToWin,
+        ));
+      } else {
+        print(
+            'DEBUG: Generating $teamCount-team tournament (Round-robin + Semi-finals + Final)');
+        matches.add(TennisMatch(
+          id: 'match_$matchNumber',
+          team1: null,
+          team2: null,
+          round: 'Semi Final',
+          matchNumber: matchNumber,
+          scheduledTime: knockoutBaseTime,
+          pointsToWinSet: pointsToWinSet,
+          setsToWin: setsToWin,
+        ));
+        matchNumber++;
+
+        matches.add(TennisMatch(
+          id: 'match_$matchNumber',
+          team1: null,
+          team2: null,
+          round: 'Semi Final',
+          matchNumber: matchNumber,
+          scheduledTime: knockoutBaseTime.add(const Duration(hours: 2)),
+          pointsToWinSet: pointsToWinSet,
+          setsToWin: setsToWin,
+        ));
+        matchNumber++;
+
+        matches.add(TennisMatch(
+          id: 'match_$matchNumber',
+          team1: null,
+          team2: null,
+          round: 'Final',
+          matchNumber: matchNumber,
+          scheduledTime: knockoutBaseTime.add(const Duration(hours: 5)),
+          pointsToWinSet: pointsToWinSet,
+          setsToWin: setsToWin,
+        ));
+      }
     }
 
     print('DEBUG: Generated ${matches.length} matches');
@@ -237,353 +300,6 @@ class TennisTournament {
     print(
         'DEBUG: Assigned teams to first round. Final match count: ${matches.length}');
     isStarted = true;
-  }
-
-  void _generateRoundOf16(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    for (int i = 0; i < 8; i++) {
-      // 8 matches in round of 16
-      final matchTime = baseTime
-          .add(Duration(minutes: i * 90)); // 1.5 hours apart (90 minutes)
-      matches.add(TennisMatch(
-        id: 'match_$startMatchNumber',
-        team1: null, // Will be assigned in _assignTeamsToFirstRound
-        team2: null, // Will be assigned in _assignTeamsToFirstRound
-        round: 'Round of 16',
-        matchNumber: startMatchNumber,
-        scheduledTime: matchTime,
-        pointsToWinSet: pointsToWinSet,
-        setsToWin: setsToWin,
-      ));
-      startMatchNumber++;
-    }
-  }
-
-  void _generateQuarterFinals(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 10)); // Start tomorrow at 10 AM
-
-    for (int i = 0; i < 4; i++) {
-      final matchTime = baseTime.add(Duration(hours: i * 2)); // 2 hours apart
-      matches.add(TennisMatch(
-        id: 'match_$startMatchNumber',
-        team1: null, // Will be assigned in _assignTeamsToFirstRound
-        team2: null, // Will be assigned in _assignTeamsToFirstRound
-        round: 'Quarter Final',
-        matchNumber: startMatchNumber,
-        scheduledTime: matchTime,
-        pointsToWinSet: pointsToWinSet,
-        setsToWin: setsToWin,
-      ));
-      startMatchNumber++;
-    }
-  }
-
-  void _generateSemiFinals(int startMatchNumber) {
-    final baseTime =
-        DateTime.now().add(const Duration(days: 2, hours: 14)); // Day 2 at 2 PM
-
-    for (int i = 0; i < 2; i++) {
-      final matchTime = baseTime.add(Duration(hours: i * 3)); // 3 hours apart
-      matches.add(TennisMatch(
-        id: 'match_$startMatchNumber',
-        team1: null, // TBD - will be filled as winners advance
-        team2: null, // TBD - will be filled as winners advance
-        round: 'Semi Final',
-        matchNumber: startMatchNumber,
-        scheduledTime: matchTime,
-        pointsToWinSet: pointsToWinSet,
-        setsToWin: setsToWin,
-      ));
-      startMatchNumber++;
-    }
-  }
-
-  void _generateFinal(int matchNumber) {
-    final finalTime =
-        DateTime.now().add(const Duration(days: 3, hours: 16)); // Day 3 at 4 PM
-    matches.add(TennisMatch(
-      id: 'match_$matchNumber',
-      team1: null, // TBD - will be filled as winners advance
-      team2: null, // TBD - will be filled as winners advance
-      round: 'Final',
-      matchNumber: matchNumber,
-      scheduledTime: finalTime,
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-  }
-
-  void _generateRoundRobin(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // For 3 teams: Team1 vs Team2, Team2 vs Team3, Team1 vs Team3
-    for (int i = 0; i < 3; i++) {
-      final matchTime =
-          baseTime.add(Duration(minutes: i * 90)); // 1.5 hours apart
-      matches.add(TennisMatch(
-        id: 'match_$startMatchNumber',
-        team1: null, // Will be assigned in _assignTeamsToFirstRound
-        team2: null, // Will be assigned in _assignTeamsToFirstRound
-        round: 'Round Robin',
-        matchNumber: startMatchNumber,
-        scheduledTime: matchTime,
-        pointsToWinSet: pointsToWinSet,
-        setsToWin: setsToWin,
-      ));
-      startMatchNumber++;
-    }
-  }
-
-  void _generateRoundRobin4Teams(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // For 4 teams: generate all possible combinations (6 matches)
-    // Each team plays against every other team once
-    int matchIndex = 0;
-    for (int i = 0; i < 4; i++) {
-      for (int j = i + 1; j < 4; j++) {
-        final matchTime =
-            baseTime.add(Duration(minutes: matchIndex * 90)); // 1.5 hours apart
-        matches.add(TennisMatch(
-          id: 'match_${startMatchNumber + matchIndex}',
-          team1: null, // Will be assigned in _assignTeamsToFirstRound
-          team2: null, // Will be assigned in _assignTeamsToFirstRound
-          round: 'Round Robin',
-          matchNumber: startMatchNumber + matchIndex,
-          scheduledTime: matchTime,
-          pointsToWinSet: pointsToWinSet,
-          setsToWin: setsToWin,
-        ));
-        matchIndex++;
-      }
-    }
-  }
-
-  void _generateRoundRobin8Teams(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // For 8 teams: generate all possible combinations (28 matches)
-    // Each team plays against every other team once
-    int matchIndex = 0;
-    for (int i = 0; i < 8; i++) {
-      for (int j = i + 1; j < 8; j++) {
-        final matchTime =
-            baseTime.add(Duration(minutes: matchIndex * 60)); // 1 hour apart
-        matches.add(TennisMatch(
-          id: 'match_${startMatchNumber + matchIndex}',
-          team1: null, // Will be assigned in _assignTeamsToFirstRound
-          team2: null, // Will be assigned in _assignTeamsToFirstRound
-          round: 'Round Robin',
-          matchNumber: startMatchNumber + matchIndex,
-          scheduledTime: matchTime,
-          pointsToWinSet: pointsToWinSet,
-          setsToWin: setsToWin,
-        ));
-        matchIndex++;
-      }
-    }
-  }
-
-  void _generateModifiedBracket5Teams(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // 5-team format: 2 quarter-finals, 1 semi-final, 1 final
-    // Quarter-final 1: Team1 vs Team2
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime,
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Quarter-final 2: Team3 vs Team4
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(minutes: 90)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final: Winner of QF1 vs Team5
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 3)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final: Winner of QF2 vs Winner of SF1
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 4, minutes: 30)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Final
-    _generateFinal(startMatchNumber);
-  }
-
-  void _generateModifiedBracket6Teams(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // 6-team format: 2 quarter-finals, 2 semi-finals, 1 final
-    // Quarter-final 1: Team1 vs Team2
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime,
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Quarter-final 2: Team3 vs Team4
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(minutes: 90)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final 1: Winner of QF1 vs Team5
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 3)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final 2: Winner of QF2 vs Team6
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 4, minutes: 30)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Final
-    _generateFinal(startMatchNumber);
-  }
-
-  void _generateModifiedBracket7Teams(int startMatchNumber) {
-    final baseTime = DateTime.now()
-        .add(const Duration(days: 1, hours: 9)); // Start tomorrow at 9 AM
-
-    // 7-team format: 3 quarter-finals, 2 semi-finals, 1 final
-    // Quarter-final 1: Team1 vs Team2
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime,
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Quarter-final 2: Team3 vs Team4
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(minutes: 90)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Quarter-final 3: Team5 vs Team6
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Quarter Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 2)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final 1: Winner of QF1 vs Winner of QF2
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 4)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Semi-final 2: Winner of QF3 vs Team7
-    matches.add(TennisMatch(
-      id: 'match_$startMatchNumber',
-      team1: null,
-      team2: null,
-      round: 'Semi Final',
-      matchNumber: startMatchNumber,
-      scheduledTime: baseTime.add(const Duration(hours: 5, minutes: 30)),
-      pointsToWinSet: pointsToWinSet,
-      setsToWin: setsToWin,
-    ));
-    startMatchNumber++;
-
-    // Final
-    _generateFinal(startMatchNumber);
   }
 
   // Get matches by round
@@ -610,7 +326,7 @@ class TennisTournament {
 
   // Check if tournament can be started
   bool get canStart {
-    return selectedPlayers.length >= 4 && selectedPlayers.length % 2 == 0;
+    return selectedPlayers.length >= 2 && selectedPlayers.length % 2 == 0;
   }
 
   // Get tournament progress percentage
@@ -620,86 +336,83 @@ class TennisTournament {
     return (completedMatches / matches.length) * 100;
   }
 
-  // Assign teams to first round matches only
-  void _assignTeamsToFirstRound() {
-    // Determine which round is the first round based on number of teams
-    String firstRound;
-    if (teams.length == 2) {
-      firstRound = 'Final';
-    } else if (teams.length == 3) {
-      firstRound = 'Round Robin';
-    } else if (teams.length == 4) {
-      firstRound = 'Round Robin';
-    } else if (teams.length == 5 || teams.length == 6 || teams.length == 7) {
-      firstRound = 'Quarter Final';
-    } else if (teams.length == 8) {
-      firstRound = 'Quarter Final';
-    } else if (teams.length == 16) {
-      firstRound = 'Round of 16';
-    } else {
-      return; // Invalid number of teams
-    }
+  // Sort matches so that no team plays in consecutive matches
+  List<TennisMatch> _sortMatchesToAvoidAdjacentTeams(
+      List<TennisMatch> matches) {
+    if (matches.length <= 1) return matches;
 
-    print('DEBUG: Assigning teams to first round: $firstRound');
-    print('DEBUG: Total teams: ${teams.length}');
+    final List<TennisMatch> sorted = [];
+    final List<TennisMatch> remaining = List.from(matches);
+    final random = Random();
 
-    final firstRoundMatches =
-        matches.where((match) => match.round == firstRound).toList();
+    // Shuffle initially for better distribution
+    remaining.shuffle(random);
 
-    print('DEBUG: Found ${firstRoundMatches.length} first round matches');
+    // Track teams that played in the last match
+    Set<String>? lastMatchTeams;
 
-    // Special handling for different tournament formats
-    if (teams.length == 2) {
-      // 2 teams: direct final
-      if (firstRoundMatches.isNotEmpty && teams.length >= 2) {
-        firstRoundMatches[0].team1 = teams[0];
-        firstRoundMatches[0].team2 = teams[1];
-        print('DEBUG: Assigned ${teams[0].name} vs ${teams[1].name} to final');
-      }
-    } else if (teams.length == 3) {
-      // 3 teams: round-robin (Team1 vs Team2, Team2 vs Team3, Team1 vs Team3)
-      if (firstRoundMatches.length >= 3 && teams.length >= 3) {
-        firstRoundMatches[0].team1 = teams[0];
-        firstRoundMatches[0].team2 = teams[1];
-        firstRoundMatches[1].team1 = teams[1];
-        firstRoundMatches[1].team2 = teams[2];
-        firstRoundMatches[2].team1 = teams[0];
-        firstRoundMatches[2].team2 = teams[2];
-        print('DEBUG: Assigned round-robin matches for 3 teams');
-      }
-    } else if (teams.length == 4) {
-      // 4 teams: round-robin (6 matches: Team1 vs Team2, Team1 vs Team3, Team1 vs Team4, Team2 vs Team3, Team2 vs Team4, Team3 vs Team4)
-      if (firstRoundMatches.length >= 6 && teams.length >= 4) {
-        firstRoundMatches[0].team1 = teams[0];
-        firstRoundMatches[0].team2 = teams[1];
-        firstRoundMatches[1].team1 = teams[0];
-        firstRoundMatches[1].team2 = teams[2];
-        firstRoundMatches[2].team1 = teams[0];
-        firstRoundMatches[2].team2 = teams[3];
-        firstRoundMatches[3].team1 = teams[1];
-        firstRoundMatches[3].team2 = teams[2];
-        firstRoundMatches[4].team1 = teams[1];
-        firstRoundMatches[4].team2 = teams[3];
-        firstRoundMatches[5].team1 = teams[2];
-        firstRoundMatches[5].team2 = teams[3];
-        print('DEBUG: Assigned round-robin matches for 4 teams');
-      }
-    } else {
-      // Standard bracket assignment for 4+ teams
-      for (int i = 0;
-          i < teams.length && i < firstRoundMatches.length * 2;
-          i += 2) {
-        final matchIndex = i ~/ 2;
-        if (matchIndex < firstRoundMatches.length) {
-          firstRoundMatches[matchIndex].team1 = teams[i];
-          if (i + 1 < teams.length) {
-            firstRoundMatches[matchIndex].team2 = teams[i + 1];
+    while (remaining.isNotEmpty) {
+      TennisMatch? selectedMatch;
+      int selectedIndex = -1;
+
+      if (lastMatchTeams == null) {
+        // First match - pick any
+        selectedMatch = remaining.removeAt(0);
+      } else {
+        // Try to find a match that doesn't contain any team from the last match
+        for (int i = 0; i < remaining.length; i++) {
+          final match = remaining[i];
+          final matchTeams = {match.team1?.id, match.team2?.id}
+              .where((id) => id != null)
+              .cast<String>()
+              .toSet();
+
+          // Check if this match has no teams in common with the last match
+          if (!matchTeams.any((teamId) => lastMatchTeams!.contains(teamId))) {
+            selectedMatch = match;
+            selectedIndex = i;
+            break;
           }
-          print(
-              'DEBUG: Assigned ${teams[i].name} vs ${i + 1 < teams.length ? teams[i + 1].name : "TBD"} to match ${matchIndex + 1}');
+        }
+
+        // If no non-adjacent match found, pick the first available
+        if (selectedMatch == null) {
+          selectedMatch = remaining.removeAt(0);
+        } else {
+          remaining.removeAt(selectedIndex);
         }
       }
+
+      sorted.add(selectedMatch);
+
+      // Update last match teams
+      lastMatchTeams = {selectedMatch.team1?.id, selectedMatch.team2?.id}
+          .where((id) => id != null)
+          .cast<String>()
+          .toSet();
     }
+
+    return sorted;
+  }
+
+  // Assign teams to first round matches only
+  void _assignTeamsToFirstRound() {
+    if (teams.length != 2) {
+      // Round-robin matches are created with their teams already assigned.
+      return;
+    }
+
+    final finalMatches =
+        matches.where((match) => match.round == 'Final').toList();
+
+    if (finalMatches.isEmpty) {
+      return;
+    }
+
+    final finalMatch = finalMatches.first;
+    finalMatch.team1 ??= teams[0];
+    finalMatch.team2 ??= teams[1];
+    print('DEBUG: Assigned ${teams[0].name} vs ${teams[1].name} to final');
   }
 
   // Advance winner to next round
@@ -711,15 +424,16 @@ class TennisTournament {
     if (nextRound == null) return;
 
     // Special handling for round-robin completion
-    if (completedMatch.round == 'Round Robin' && teams.length == 4) {
-      _advanceTopTeamsFromRoundRobin();
-      return;
-    }
+    if (completedMatch.round == 'Round Robin') {
+      if (teams.length == 3) {
+        _advanceTopTeamsFromRoundRobin3Teams();
+        return;
+      }
 
-    // Special handling for 3-team round-robin completion
-    if (completedMatch.round == 'Round Robin' && teams.length == 3) {
-      _advanceTopTeamsFromRoundRobin3Teams();
-      return;
+      if (teams.length >= 4) {
+        _advanceTopTeamsFromRoundRobin();
+        return;
+      }
     }
 
     final nextRoundMatches =
@@ -759,8 +473,7 @@ class TennisTournament {
         teamStandings.take(2).map((standing) => standing.team).toList();
 
     // Assign to final
-    final finalMatches =
-        matches.where((m) => m.round == 'Final').toList();
+    final finalMatches = matches.where((m) => m.round == 'Final').toList();
     if (finalMatches.isNotEmpty) {
       finalMatches[0].team1 = topTeams[0];
       finalMatches[0].team2 = topTeams[1];
@@ -835,7 +548,8 @@ class TennisTournament {
         // Count total sets played (number of completed sets in the match)
         totalSetsPlayed += match.setPointHistory.length;
         // If match is in progress, count current set if it has points
-        if (!match.isCompleted && (match.team1CurrentPoints > 0 || match.team2CurrentPoints > 0)) {
+        if (!match.isCompleted &&
+            (match.team1CurrentPoints > 0 || match.team2CurrentPoints > 0)) {
           totalSetsPlayed += 1;
         }
       }
@@ -855,7 +569,7 @@ class TennisTournament {
       ));
     }
 
-    // Sort by wins (descending), then by point difference (descending), 
+    // Sort by wins (descending), then by point difference (descending),
     // then by sets played (ascending - fewer sets is better), then by win percentage
     standings.sort((a, b) {
       if (a.wins != b.wins) {
@@ -879,13 +593,13 @@ class TennisTournament {
   String? _getNextRound(String currentRound) {
     switch (currentRound) {
       case 'Round Robin':
-        // For 4 teams, round-robin leads to semi-finals
-        // For 3 teams, round-robin leads to final
-        return teams.length == 4 ? 'Semi Final' : 'Final';
-      case 'Round of 16':
-        return 'Quarter Final';
-      case 'Quarter Final':
-        return 'Semi Final';
+        if (teams.length == 3) {
+          return 'Final';
+        }
+        if (teams.length >= 4) {
+          return 'Semi Final';
+        }
+        return null;
       case 'Semi Final':
         return 'Final';
       default:
